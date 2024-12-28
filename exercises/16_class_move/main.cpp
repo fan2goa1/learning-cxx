@@ -15,24 +15,38 @@ class DynFibonacci {
 
 public:
     // TODO: 实现动态设置容量的构造器
-    DynFibonacci(int capacity): cache(new ?), cached(?) {}
-
-    // TODO: 实现移动构造器
-    DynFibonacci(DynFibonacci &&) noexcept = delete;
-
-    // TODO: 实现移动赋值
-    // NOTICE: ⚠ 注意移动到自身问题 ⚠
-    DynFibonacci &operator=(DynFibonacci &&) noexcept = delete;
-
-    // TODO: 实现析构器，释放缓存空间
-    ~DynFibonacci();
-
-    // TODO: 实现正确的缓存优化斐波那契计算
-    size_t operator[](int i) {
-        for (; false; ++cached) {
+    DynFibonacci(int capacity): cache(new size_t[capacity]), cached(0) {
+        cache[0] = 0;
+        cache[1] = 1;
+        for (cached = 2; cached < capacity; ++cached) {
             cache[cached] = cache[cached - 1] + cache[cached - 2];
         }
-        return cache[i];
+    }
+
+    // TODO: 实现移动构造器
+    DynFibonacci(DynFibonacci &&a) noexcept {
+        cache = a.cache;
+        cached = a.cached;
+        a.cache = nullptr;
+        a.cached = 0;
+    }
+
+    // TODO: 实现移动赋值 (zzf注：看起来更像一个copy constructor)
+    // NOTICE: ⚠ 注意移动到自身问题 ⚠
+    DynFibonacci &operator=(DynFibonacci &&a) noexcept {
+        if (this != &a) {
+            delete[] cache;
+            cache = a.cache;
+            cached = a.cached;
+            a.cache = nullptr;
+            a.cached = 0;
+        }
+        return *this;
+    }
+
+    // TODO: 实现析构器，释放缓存空间
+    ~DynFibonacci() {
+        delete[] cache;
     }
 
     // NOTICE: 不要修改这个方法

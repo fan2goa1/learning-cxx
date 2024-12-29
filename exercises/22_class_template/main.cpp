@@ -2,14 +2,16 @@
 
 // READ: 类模板 <https://zh.cppreference.com/w/cpp/language/class_template>
 
-template<class T>
+template<typename T>
 struct Tensor4D {
     unsigned int shape[4];
     T *data;
 
-    Tensor4D(unsigned int const shape_[4], T const *data_) {
+    Tensor4D(unsigned int const *shape_, T const *data_) {
         unsigned int size = 1;
         // TODO: 填入正确的 shape 并计算 size
+        std::memcpy(shape, shape_, 4 * sizeof(unsigned int));
+        size = shape[0] * shape[1] * shape[2] * shape[3];
         data = new T[size];
         std::memcpy(data, data_, size * sizeof(T));
     }
@@ -28,6 +30,45 @@ struct Tensor4D {
     // 则 `this` 与 `others` 相加时，3 个形状为 `[1, 2, 1, 4]` 的子张量各自与 `others` 对应项相加。
     Tensor4D &operator+=(Tensor4D const &others) {
         // TODO: 实现单向广播的加法
+        unsigned int size = 1;
+        unsigned int ans_shape[4] = {std::max(shape[0], others.shape[0]),
+                            std::max(shape[1], others.shape[1]),
+                            std::max(shape[2], others.shape[2]),
+                            std::max(shape[3], others.shape[3])};
+        for (int i = 0; i < 4; i++) {
+            // 如果两个维度不相等且不为 1，则不支持广播，无法相加，直接返回
+            if (shape[i] != others.shape[i] && shape[i] != 1 && others.shape[i] != 1) {
+                return *this;
+            }
+            size *= std::max(shape[i], others.shape[i]);
+        }
+        T *new_data = new T[size];
+        for (unsigned int i = 0; i < size; i++) {
+            unsigned int idx_a[4] = {i / (ans_shape[1] * ans_shape[2] * ans_shape[3]) % ans_shape[0],
+                            i / (ans_shape[2] * ans_shape[3]) % ans_shape[1],
+                            i / (ans_shape[3]) % ans_shape[2],
+                            i % ans_shape[3]};
+            unsigned int idx_b[4] = {idx_a[0],
+                            idx_a[1],
+                            idx_a[2],
+                            idx_a[3]};
+            
+            for (int j = 0; j < 4; j++) {
+                if (shape[j] == 1) {
+                    idx_a[j] = 0;
+                }
+                if (others.shape[j] == 1) {
+                    idx_b[j] = 0;
+                }
+            }
+            new_data[i] = data[idx_a[0] * shape[1] * shape[2] * shape[3] + idx_a[1] * shape[2] * shape[3] + idx_a[2] * shape[3] + idx_a[3]] +
+                          others.data[idx_b[0] * others.shape[1] * others.shape[2] * others.shape[3] + idx_b[1] * others.shape[2] * others.shape[3] + idx_b[2] * others.shape[3] + idx_b[3]];
+        }
+        delete[] data;
+        data = new_data;
+        for (int i = 0; i < 4; i++) {
+            shape[i] = ans_shape[i];
+        }
         return *this;
     }
 };
